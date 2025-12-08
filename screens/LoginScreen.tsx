@@ -1,8 +1,21 @@
-// src/screens/LoginScreen.tsx
-import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity, Alert } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ActivityIndicator,
+  SafeAreaView,
+  Animated,
+  Easing,
+  ScrollView,
+} from "react-native";
 import { useAuth } from "../contexts/AuthContext";
-import Button from "../components/Button";
 
 export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
@@ -10,35 +23,389 @@ export default function LoginScreen({ navigation }: any) {
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.85)).current;
+  const cardSlide = useRef(new Animated.Value(40)).current;
+  const cardFade = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 700,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoScale, {
+        toValue: 1,
+        duration: 700,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardSlide, {
+        toValue: 0,
+        duration: 700,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardFade, {
+        toValue: 1,
+        duration: 700,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const doLogin = async () => {
+    if (!email.trim() || !pass) {
+      Alert.alert("Validation", "Please enter both email and password.");
+      return;
+    }
     try {
       setLoading(true);
       await login(email.trim(), pass);
     } catch (e: any) {
-      Alert.alert("Login failed", e.message || "Try again");
+      Alert.alert("Login failed", e?.message || "Unable to login — please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={require("../assets/logo.png")} style={{ width: 120, height: 120, marginBottom: 16 }} />
-      <Text style={styles.title}>TaskOrbit</Text>
-      <TextInput placeholder="Email" style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" />
-      <TextInput placeholder="Password" secureTextEntry style={styles.input} value={pass} onChangeText={setPass} />
-      <Button title={loading ? "Logging..." : "Login"} onPress={doLogin} />
-      <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")} style={{ marginTop: 8 }}>
-        <Text style={{ color: "#fff", fontSize: 14 }}>Forgot Password?</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate("Register")} style={{ marginTop: 12 }}>
-        <Text style={{ color: "#fff" }}>Don't have account? Register</Text>
-      </TouchableOpacity>
-    </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#06121a" }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+          <View style={styles.headerBand} />
+
+          <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+
+            {/* Logo Section */}
+            <Animated.View style={[styles.brandWrap, { transform: [{ scale: logoScale }] }]}>
+              <View style={styles.logoBevel}>
+                <Image source={require("../assets/logo.png")} style={styles.logoImage} />
+                <View style={styles.logoGloss} />
+              </View>
+
+              <Text style={styles.brand}>TaskOrbit</Text>
+              <Text style={styles.brandSub}>Premium task & project management</Text>
+            </Animated.View>
+
+            {/* Card */}
+            <Animated.View
+              style={[
+                styles.card,
+                { opacity: cardFade, transform: [{ translateY: cardSlide }] },
+              ]}
+            >
+              <Text style={styles.cardTitle}>Welcome back</Text>
+              <Text style={styles.cardSubtitle}>Sign in to continue</Text>
+
+              {/* Email */}
+              <Text style={styles.fieldLabel}>Email</Text>
+              <View style={styles.inputWrap}>
+                <Text style={styles.icon}>✉︎</Text>
+                <TextInput
+                  placeholder="name@company.com"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              {/* Password */}
+              <Text style={styles.fieldLabel}>Password</Text>
+              <View style={styles.inputWrap}>
+                <Text style={styles.icon}>🔒</Text>
+                <TextInput
+                  placeholder="Your password"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  secureTextEntry
+                  style={styles.input}
+                  value={pass}
+                  onChangeText={setPass}
+                />
+              </View>
+
+              {/* Forgot Password */}
+              <View style={styles.forgotRow}>
+                <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
+                  <Text style={styles.forgotText}>Forgot password?</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Login Button */}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={doLogin}
+                style={[styles.primaryButton, loading && { opacity: 0.7 }]}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#02262a" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Login</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* NEW: Don't have an account? Register */}
+              <View style={styles.rowCenter}>
+                <Text style={styles.smallText}>Don’t have an account?</Text>
+                <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+                  <Text style={styles.link}> Register</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* SOCIAL BUTTONS */}
+              {[
+                {
+                  label: "Continue with Google",
+                  icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg",
+                },
+                {
+                  label: "Continue with Apple",
+                  icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg",
+                },
+                {
+                  label: "Continue with Facebook",
+                  icon: "https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png",
+                },
+              ].map((item, i) => (
+                <TouchableOpacity key={i} style={styles.socialBtn}>
+                  <Image source={{ uri: item.icon }} style={styles.socialIcon} />
+                  <Text style={styles.socialText}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </Animated.View>
+
+            <Text style={styles.footNote}>By continuing you agree to our Terms & Privacy</Text>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
+/* ------------------ STYLES ------------------ */
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f1724", padding: 20, alignItems: "center", justifyContent: "center" },
-  title: { color: "#fff", fontSize: 22, marginBottom: 16 },
-  input: { width: "100%", backgroundColor: "#fff", padding: 12, borderRadius: 8, marginVertical: 8 }
+  headerBand: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 210,
+    backgroundColor: "#072033",
+    transform: [{ skewY: "-3deg" }],
+    opacity: 0.9,
+  },
+
+  container: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 22,
+    paddingTop: 48,
+  },
+
+  brandWrap: { alignItems: "center", marginBottom: 20 },
+
+  logoBevel: {
+    width: 135,
+    height: 135,
+    borderRadius: 16,
+    backgroundColor: "#08131a",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+
+  logoImage: {
+    width: 120,
+    height: 120,
+    resizeMode: "cover",
+    borderRadius: 12,
+  },
+
+  logoGloss: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    width: 56,
+    height: 22,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    transform: [{ rotate: "-12deg" }],
+  },
+
+  brand: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "800",
+    marginTop: 10,
+  },
+
+  brandSub: {
+    color: "rgba(255,255,255,0.7)",
+    marginTop: 4,
+    fontSize: 13,
+  },
+
+  card: {
+    width: "100%",
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 18,
+    borderRadius: 14,
+    marginTop: 10,
+  },
+
+  cardTitle: {
+    color: "rgba(255,255,255,0.95)",
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+
+  cardSubtitle: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 13,
+    marginBottom: 12,
+  },
+
+  fieldLabel: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 12,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+
+  inputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.02)",
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.03)",
+    height: 48,
+  },
+
+  icon: {
+    color: "rgba(255,255,255,0.85)",
+    marginRight: 8,
+    fontSize: 16,
+    width: 22,
+    textAlign: "center",
+  },
+
+  input: {
+    flex: 1,
+    color: "#fff",
+    fontSize: 15,
+  },
+
+  forgotRow: {
+    alignItems: "flex-end",
+    marginTop: 6,
+    marginBottom: 6,
+  },
+
+  forgotText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+  },
+
+  primaryButton: {
+    marginTop: 12,
+    borderRadius: 12,
+    paddingVertical: 12,
+    width: "100%",
+    alignItems: "center",
+    backgroundColor: "#06b6d4",
+  },
+
+  primaryButtonText: {
+    color: "#02262a",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+
+  /* NEW STYLES */
+  rowCenter: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 14,
+  },
+
+  smallText: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 13,
+  },
+
+  link: {
+    color: "#06b6d4",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+  },
+
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+
+  dividerText: {
+    color: "rgba(255,255,255,0.5)",
+    marginHorizontal: 10,
+    fontSize: 12,
+  },
+
+  socialBtn: {
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.04)",
+    backgroundColor: "rgba(255,255,255,0.015)",
+  },
+
+  socialIcon: {
+    width: 22,
+    height: 22,
+    marginRight: 12,
+  },
+
+  socialText: {
+    color: "rgba(255,255,255,0.95)",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+
+  footNote: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 12,
+    marginTop: 14,
+    textAlign: "center",
+  },
 });
