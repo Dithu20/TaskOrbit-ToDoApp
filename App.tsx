@@ -5,6 +5,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 // import RootNavigator from "./navigation/RootNavigator"; 
 import { StatusBar } from "react-native";
 import RootNavigator from "./navigation/RootNavigator";
+import TaskDetailScreen from "./screens/TaskDetailScreen";
 
 export default function App() {
   return (
