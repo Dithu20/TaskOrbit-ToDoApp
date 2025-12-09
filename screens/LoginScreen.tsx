@@ -15,6 +15,7 @@ import {
   Easing,
   ScrollView,
 } from "react-native";
+
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginScreen({ navigation }: any) {
@@ -23,7 +24,7 @@ export default function LoginScreen({ navigation }: any) {
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Animations
+  /* Animations */
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.85)).current;
   const cardSlide = useRef(new Animated.Value(40)).current;
@@ -73,6 +74,13 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
+  /* Social Icon URLs */
+  const socialIcons = [
+    "https://cdn-icons-png.flaticon.com/512/300/300221.png",   // Google
+    "https://cdn-icons-png.flaticon.com/512/731/731985.png",   // Apple
+    "https://static.vecteezy.com/system/resources/previews/021/495/960/original/facebook-logo-icon-free-png.png",   // Facebook
+  ];
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#06121a" }}>
       <KeyboardAvoidingView
@@ -83,7 +91,7 @@ export default function LoginScreen({ navigation }: any) {
           <View style={styles.headerBand} />
 
           <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-
+            
             {/* Logo Section */}
             <Animated.View style={[styles.brandWrap, { transform: [{ scale: logoScale }] }]}>
               <View style={styles.logoBevel}>
@@ -154,7 +162,7 @@ export default function LoginScreen({ navigation }: any) {
                 )}
               </TouchableOpacity>
 
-              {/* NEW: Don't have an account? Register */}
+              {/* Register Link */}
               <View style={styles.rowCenter}>
                 <Text style={styles.smallText}>Don’t have an account?</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("Register")}>
@@ -169,26 +177,15 @@ export default function LoginScreen({ navigation }: any) {
                 <View style={styles.dividerLine} />
               </View>
 
-              {/* SOCIAL BUTTONS */}
-              {[
-                {
-                  label: "Continue with Google",
-                  icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg",
-                },
-                {
-                  label: "Continue with Apple",
-                  icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apple/apple-original.svg",
-                },
-                {
-                  label: "Continue with Facebook",
-                  icon: "https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png",
-                },
-              ].map((item, i) => (
-                <TouchableOpacity key={i} style={styles.socialBtn}>
-                  <Image source={{ uri: item.icon }} style={styles.socialIcon} />
-                  <Text style={styles.socialText}>{item.label}</Text>
-                </TouchableOpacity>
-              ))}
+              {/* 🔵 CIRCULAR SOCIAL ICON BUTTONS (URL Icons) */}
+              <View style={styles.socialRow}>
+                {socialIcons.map((url, i) => (
+                  <TouchableOpacity key={i} style={styles.socialCircle}>
+                    <Image source={{ uri: url }} style={styles.socialCircleIcon} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
             </Animated.View>
 
             <Text style={styles.footNote}>By continuing you agree to our Terms & Privacy</Text>
@@ -342,7 +339,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  /* NEW STYLES */
   rowCenter: {
     flexDirection: "row",
     justifyContent: "center",
@@ -378,28 +374,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  socialBtn: {
-    marginTop: 10,
+  /* 🔵 Circular Social Buttons */
+  socialRow: {
     flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 16,
+    gap: 16,
+  },
+
+  socialCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 52,
+    backgroundColor: "rgba(255,255,255,0.05)",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.04)",
-    backgroundColor: "rgba(255,255,255,0.015)",
+    borderColor: "rgba(255,255,255,0.08)",
   },
 
-  socialIcon: {
-    width: 22,
-    height: 22,
-    marginRight: 12,
-  },
-
-  socialText: {
-    color: "rgba(255,255,255,0.95)",
-    fontSize: 14,
-    fontWeight: "500",
+  socialCircleIcon: {
+    width: 42,
+    height: 42,
+    resizeMode: "contain",
   },
 
   footNote: {
