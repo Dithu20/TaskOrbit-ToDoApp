@@ -189,7 +189,8 @@ export default function RegisterScreen({ navigation }: any) {
 
               {/* Register Button (glow + shadow) */}
               <View style={styles.buttonWrap}>
-                
+              
+              
                 <TouchableOpacity activeOpacity={0.9} onPress={doRegister} style={[styles.primaryButton, loading && { opacity: 0.7 }]}>
                   {loading ? <ActivityIndicator size="small" color="#02262a" /> : <Text style={styles.primaryButtonText}>Register</Text>}
                 </TouchableOpacity>
