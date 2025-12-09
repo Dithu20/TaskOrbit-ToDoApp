@@ -66,14 +66,22 @@ export default function LoginScreen({ navigation }: any) {
     }
     try {
       setLoading(true);
+  
+      // Try login
       await login(email.trim(), pass);
+  
+      // 🔥 SUCCESS → Navigate to Home Screen
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Home" }],
+      });
+  
     } catch (e: any) {
       Alert.alert("Login failed", e?.message || "Unable to login — please try again.");
     } finally {
       setLoading(false);
     }
   };
-
   /* Social Icon URLs */
   const socialIcons = [
     "https://cdn-icons-png.flaticon.com/512/300/300221.png", // Google

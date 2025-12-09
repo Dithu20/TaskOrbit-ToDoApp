@@ -4,56 +4,34 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { deleteTask } from "../services/taskService";
 
-export default function TaskDetailScreen({ route, navigation }: any) {
-  const { taskId } = route.params || {};
-  const [task, setTask] = useState<any>(null);
+export default function TaskDetailScreen({ route, navigation }) {
+  const taskId = route?.params?.taskId;
+  const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!taskId) return;
 
-    const loadTask = async () => {
-      try {
-        const snap = await getDoc(doc(db, "tasks", taskId));
-        if (snap.exists()) {
-          setTask({ id: snap.id, ...(snap.data() as any) });
-        }
-      } catch (e: any) {
-        Alert.alert("Error", e.message);
-      } finally {
-        setLoading(false);
-      }
+    const load = async () => {
+      const snap = await getDoc(doc(db, "tasks", taskId));
+      if (snap.exists()) setTask({ id: snap.id, ...snap.data() });
+      setLoading(false);
     };
 
-    loadTask();
+    load();
   }, [taskId]);
 
-  const onDelete = async () => {
-    Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this task?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteTask(taskId);
-              Alert.alert("Deleted", "Task has been removed.");
-              navigation.goBack();
-            } catch (err: any) {
-              Alert.alert("Error", err.message || "Delete failed");
-            }
-          }
-        }
-      ]
+  if (!taskId) {
+    return (
+      <View style={styles.error}>
+        <Text style={{ color: "#fff" }}>Task ID missing!</Text>
+      </View>
     );
-  };
+  }
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.error}>
         <Text style={{ color: "#fff" }}>Loading...</Text>
       </View>
     );
@@ -61,28 +39,36 @@ export default function TaskDetailScreen({ route, navigation }: any) {
 
   if (!task) {
     return (
-      <View style={styles.container}>
+      <View style={styles.error}>
         <Text style={{ color: "#fff" }}>Task not found</Text>
       </View>
     );
   }
 
+  const deletePress = () => {
+    Alert.alert("Delete", "Delete this task?", [
+      { text: "Cancel" },
+      {
+        text: "Delete",
+        onPress: async () => {
+          await deleteTask(taskId);
+          navigation.goBack();
+        },
+        style: "destructive",
+      },
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{task.title}</Text>
 
-      {task.description ? (
-        <Text style={styles.description}>{task.description}</Text>
-      ) : (
-        <Text style={styles.noDescription}>No description added</Text>
-      )}
+      <Text style={styles.desc}>{task.description || "No description"}</Text>
 
-      <Text style={styles.label}>Status:</Text>
-      <Text style={styles.status}>
-        {task.completed ? "Completed ✓" : "Pending ⏳"}
-      </Text>
+      <Text style={styles.label}>Category:</Text>
+      <Text style={styles.value}>{task.category}</Text>
 
-      <View style={styles.btnRow}>
+      <View style={styles.row}>
         <TouchableOpacity
           style={[styles.btn, { backgroundColor: "#4f8bff" }]}
           onPress={() => navigation.navigate("ItemEditorScreen", { taskId })}
@@ -92,7 +78,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
 
         <TouchableOpacity
           style={[styles.btn, { backgroundColor: "#ff4d4d" }]}
-          onPress={onDelete}
+          onPress={deletePress}
         >
           <Text style={styles.btnText}>Delete</Text>
         </TouchableOpacity>
@@ -103,20 +89,20 @@ export default function TaskDetailScreen({ route, navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0f1724", padding: 20 },
-  title: { color: "#fff", fontSize: 24, marginBottom: 10, fontWeight: "700" },
-  description: { color: "#ddd", fontSize: 16, marginBottom: 20 },
-  noDescription: { color: "#777", fontSize: 16, marginBottom: 20, fontStyle: "italic" },
-  label: { color: "#aaa", fontSize: 14, marginTop: 10 },
-  status: { color: "#fff", fontSize: 18, marginTop: 4 },
-  btnRow: {
+  error: { flex: 1, justifyContent: "center", alignItems: "center" },
+  title: { color: "#fff", fontSize: 24, fontWeight: "700" },
+  desc: { color: "#ccc", marginVertical: 20 },
+  label: { color: "#aaa", marginTop: 10 },
+  value: { color: "#fff", fontSize: 18 },
+  row: {
     flexDirection: "row",
     marginTop: 40,
     justifyContent: "space-between",
   },
   btn: {
-    padding: 14,
-    borderRadius: 10,
     width: "48%",
+    padding: 15,
+    borderRadius: 10,
     alignItems: "center",
   },
   btnText: { color: "#fff", fontSize: 16, fontWeight: "600" },
