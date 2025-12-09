@@ -15,16 +15,16 @@ import {
   Easing,
   ScrollView,
 } from "react-native";
-
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  /* Animations */
+  /* Animations for screen */
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.85)).current;
   const cardSlide = useRef(new Animated.Value(40)).current;
@@ -76,10 +76,31 @@ export default function LoginScreen({ navigation }: any) {
 
   /* Social Icon URLs */
   const socialIcons = [
-    "https://cdn-icons-png.flaticon.com/512/300/300221.png",   // Google
-    "https://cdn-icons-png.flaticon.com/512/731/731985.png",   // Apple
-    "https://static.vecteezy.com/system/resources/previews/021/495/960/original/facebook-logo-icon-free-png.png",   // Facebook
+    "https://cdn-icons-png.flaticon.com/512/300/300221.png", // Google
+    "https://cdn-icons-png.flaticon.com/512/731/731985.png", // Apple
+    "https://static.vecteezy.com/system/resources/previews/021/495/960/original/facebook-logo-icon-free-png.png", // Facebook
   ];
+
+  // animated scale values for each social icon
+  const scaleAnims = useRef(socialIcons.map(() => new Animated.Value(1))).current;
+
+  const handlePressIn = (i: number) => {
+    Animated.spring(scaleAnims[i], {
+      toValue: 0.92,
+      useNativeDriver: true,
+      friction: 7,
+      tension: 80,
+    }).start();
+  };
+
+  const handlePressOut = (i: number) => {
+    Animated.spring(scaleAnims[i], {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 7,
+      tension: 80,
+    }).start();
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#06121a" }}>
@@ -91,7 +112,6 @@ export default function LoginScreen({ navigation }: any) {
           <View style={styles.headerBand} />
 
           <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            
             {/* Logo Section */}
             <Animated.View style={[styles.brandWrap, { transform: [{ scale: logoScale }] }]}>
               <View style={styles.logoBevel}>
@@ -104,12 +124,7 @@ export default function LoginScreen({ navigation }: any) {
             </Animated.View>
 
             {/* Card */}
-            <Animated.View
-              style={[
-                styles.card,
-                { opacity: cardFade, transform: [{ translateY: cardSlide }] },
-              ]}
-            >
+            <Animated.View style={[styles.card, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
               <Text style={styles.cardTitle}>Welcome back</Text>
               <Text style={styles.cardSubtitle}>Sign in to continue</Text>
 
@@ -135,11 +150,14 @@ export default function LoginScreen({ navigation }: any) {
                 <TextInput
                   placeholder="Your password"
                   placeholderTextColor="rgba(255,255,255,0.5)"
-                  secureTextEntry
+                  secureTextEntry={!showPass}
                   style={styles.input}
                   value={pass}
                   onChangeText={setPass}
                 />
+                <TouchableOpacity onPress={() => setShowPass((s) => !s)} activeOpacity={0.7}>
+                  <Text style={styles.showHideText}>{showPass ? "Hide" : "Show"}</Text>
+                </TouchableOpacity>
               </View>
 
               {/* Forgot Password */}
@@ -149,18 +167,22 @@ export default function LoginScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
 
-              {/* Login Button */}
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={doLogin}
-                style={[styles.primaryButton, loading && { opacity: 0.7 }]}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#02262a" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Login</Text>
-                )}
-              </TouchableOpacity>
+              {/* Login Button (with soft glow + shadow) */}
+              <View style={styles.buttonWrap}>
+                {/* glow layer (soft) */}
+                
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={doLogin}
+                  style={[styles.primaryButton, loading && { opacity: 0.7 }]}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#02262a" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>Login</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
 
               {/* Register Link */}
               <View style={styles.rowCenter}>
@@ -177,15 +199,27 @@ export default function LoginScreen({ navigation }: any) {
                 <View style={styles.dividerLine} />
               </View>
 
-              {/* 🔵 CIRCULAR SOCIAL ICON BUTTONS (URL Icons) */}
+              {/* Social icons (no border, scale animation) */}
               <View style={styles.socialRow}>
                 {socialIcons.map((url, i) => (
-                  <TouchableOpacity key={i} style={styles.socialCircle}>
-                    <Image source={{ uri: url }} style={styles.socialCircleIcon} />
-                  </TouchableOpacity>
+                  <Animated.View
+                    key={i}
+                    style={[
+                      { transform: [{ scale: scaleAnims[i] }] },
+                    ]}
+                  >
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPressIn={() => handlePressIn(i)}
+                      onPressOut={() => handlePressOut(i)}
+                      onPress={() => console.log("social press", i)}
+                      style={styles.socialCircle}
+                    >
+                      <Image source={{ uri: url }} style={styles.socialCircleIcon} />
+                    </TouchableOpacity>
+                  </Animated.View>
                 ))}
               </View>
-
             </Animated.View>
 
             <Text style={styles.footNote}>By continuing you agree to our Terms & Privacy</Text>
@@ -291,7 +325,7 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.02)",
+    backgroundColor: "rgba(255,255,255,0.04)", // brighter
     paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
@@ -313,6 +347,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 
+  showHideText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    paddingHorizontal: 8,
+  },
+
   forgotRow: {
     alignItems: "flex-end",
     marginTop: 6,
@@ -324,13 +364,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  primaryButton: {
+  /* button wrap to position glow behind button */
+  buttonWrap: {
     marginTop: 12,
-    borderRadius: 12,
-    paddingVertical: 12,
     width: "100%",
     alignItems: "center",
+    justifyContent: "center",
+  },
+
+  /* soft glow simulated by a low-opacity larger layer */
+  // buttonGlow: {
+  //   position: "absolute",
+  //   top: -6,
+  //   width: "86%",
+  //   height: 56,
+  //   borderRadius: 14,
+  //   backgroundColor: "rgba(6,182,212,0.12)",
+  //   zIndex: 0,
+  // },
+
+  primaryButton: {
+    zIndex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    width: "86%",
+    alignItems: "center",
     backgroundColor: "#06b6d4",
+    // shadow (iOS)
+    shadowColor: "#06b6d4",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    // elevation (Android)
+    elevation: 6,
   },
 
   primaryButtonText: {
@@ -374,29 +440,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  /* 🔵 Circular Social Buttons */
+  /* Social row without border on circles (flat) */
   socialRow: {
     flexDirection: "row",
     justifyContent: "center",
     marginTop: 16,
-    gap: 16,
   },
 
   socialCircle: {
     width: 52,
     height: 52,
     borderRadius: 52,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.03)", // subtle fill
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    marginHorizontal: 8,
   },
 
   socialCircleIcon: {
     width: 42,
     height: 42,
-    resizeMode: "contain",
+    resizeMode: "contain", // keep icon recognizable inside circle
   },
 
   footNote: {
