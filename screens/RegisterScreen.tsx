@@ -15,7 +15,6 @@ import {
   Easing,
   ScrollView,
 } from "react-native";
-
 import { useAuth } from "../contexts/AuthContext";
 
 export default function RegisterScreen({ navigation }: any) {
@@ -25,8 +24,11 @@ export default function RegisterScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  /* entry animations */
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.85)).current;
   const cardSlide = useRef(new Animated.Value(40)).current;
@@ -85,25 +87,27 @@ export default function RegisterScreen({ navigation }: any) {
 
   /* Social Icon URLs */
   const socialIcons = [
-    "https://cdn-icons-png.flaticon.com/512/300/300221.png",   // Google
-    "https://cdn-icons-png.flaticon.com/512/731/731985.png",   // Apple
+    "https://cdn-icons-png.flaticon.com/512/300/300221.png", // Google
+    "https://cdn-icons-png.flaticon.com/512/731/731985.png", // Apple
     "https://static.vecteezy.com/system/resources/previews/021/495/960/original/facebook-logo-icon-free-png.png", // Facebook
   ];
 
+  // animated scale values for each social icon
+  const scaleAnims = useRef(socialIcons.map(() => new Animated.Value(1))).current;
+  const handlePressIn = (i: number) => {
+    Animated.spring(scaleAnims[i], { toValue: 0.92, useNativeDriver: true, friction: 7, tension: 80 }).start();
+  };
+  const handlePressOut = (i: number) => {
+    Animated.spring(scaleAnims[i], { toValue: 1, useNativeDriver: true, friction: 7, tension: 80 }).start();
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#06121a" }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          contentContainerStyle={{ paddingBottom: 60 }}
-          showsVerticalScrollIndicator={false}
-        >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
           <View style={styles.headerBand} />
 
           <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            
             {/* Logo */}
             <Animated.View style={[styles.brandWrap, { transform: [{ scale: logoScale }] }]}>
               <View style={styles.logoBevel}>
@@ -116,12 +120,7 @@ export default function RegisterScreen({ navigation }: any) {
             </Animated.View>
 
             {/* Card */}
-            <Animated.View
-              style={[
-                styles.card,
-                { opacity: cardFade, transform: [{ translateY: cardSlide }] },
-              ]}
-            >
+            <Animated.View style={[styles.card, { opacity: cardFade, transform: [{ translateY: cardSlide }] }]}>
               <Text style={styles.cardTitle}>Create Account</Text>
               <Text style={styles.cardSubtitle}>Join the TaskOrbit community</Text>
 
@@ -129,13 +128,7 @@ export default function RegisterScreen({ navigation }: any) {
               <Text style={styles.fieldLabel}>Full Name</Text>
               <View style={styles.inputWrap}>
                 <Text style={styles.icon}>👤</Text>
-                <TextInput
-                  placeholder="John Doe"
-                  placeholderTextColor="rgba(255,255,255,0.5)"
-                  style={styles.input}
-                  value={name}
-                  onChangeText={setName}
-                />
+                <TextInput placeholder="John Doe" placeholderTextColor="rgba(255,255,255,0.5)" style={styles.input} value={name} onChangeText={setName} />
               </View>
 
               {/* Email */}
@@ -160,28 +153,19 @@ export default function RegisterScreen({ navigation }: any) {
                 <TextInput
                   placeholder="Create a password"
                   placeholderTextColor="rgba(255,255,255,0.5)"
-                  secureTextEntry
+                  secureTextEntry={!showPass}
                   style={styles.input}
                   value={pass}
                   onChangeText={setPass}
                 />
+                <TouchableOpacity onPress={() => setShowPass((s) => !s)} activeOpacity={0.7}>
+                  <Text style={styles.showHideText}>{showPass ? "Hide" : "Show"}</Text>
+                </TouchableOpacity>
               </View>
 
               {/* Password Strength */}
               {pass.length > 0 && (
-                <Text
-                  style={[
-                    styles.strengthText,
-                    {
-                      color:
-                        getPasswordStrength() === "Weak"
-                          ? "#ff4d4d"
-                          : getPasswordStrength() === "Medium"
-                          ? "#ffb84d"
-                          : "#4dff7a",
-                    },
-                  ]}
-                >
+                <Text style={[styles.strengthText, { color: getPasswordStrength() === "Weak" ? "#ff4d4d" : getPasswordStrength() === "Medium" ? "#ffb84d" : "#4dff7a" }]}>
                   Strength: {getPasswordStrength()}
                 </Text>
               )}
@@ -193,25 +177,23 @@ export default function RegisterScreen({ navigation }: any) {
                 <TextInput
                   placeholder="Re-enter your password"
                   placeholderTextColor="rgba(255,255,255,0.5)"
-                  secureTextEntry
+                  secureTextEntry={!showConfirmPass}
                   style={styles.input}
                   value={confirmPass}
                   onChangeText={setConfirmPass}
                 />
+                <TouchableOpacity onPress={() => setShowConfirmPass((s) => !s)} activeOpacity={0.7}>
+                  <Text style={styles.showHideText}>{showConfirmPass ? "Hide" : "Show"}</Text>
+                </TouchableOpacity>
               </View>
 
-              {/* Register Button */}
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={doRegister}
-                style={[styles.primaryButton, loading && { opacity: 0.7 }]}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#02262a" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Register</Text>
-                )}
-              </TouchableOpacity>
+              {/* Register Button (glow + shadow) */}
+              <View style={styles.buttonWrap}>
+                
+                <TouchableOpacity activeOpacity={0.9} onPress={doRegister} style={[styles.primaryButton, loading && { opacity: 0.7 }]}>
+                  {loading ? <ActivityIndicator size="small" color="#02262a" /> : <Text style={styles.primaryButtonText}>Register</Text>}
+                </TouchableOpacity>
+              </View>
 
               {/* Already Have Account */}
               <View style={styles.rowCenter}>
@@ -228,20 +210,25 @@ export default function RegisterScreen({ navigation }: any) {
                 <View style={styles.dividerLine} />
               </View>
 
-              {/* 🔵 Circular Social Buttons (URL Icons) */}
+              {/* Social icons */}
               <View style={styles.socialRow}>
                 {socialIcons.map((url, i) => (
-                  <TouchableOpacity key={i} style={styles.socialCircle}>
-                    <Image source={{ uri: url }} style={styles.socialCircleIcon} />
-                  </TouchableOpacity>
+                  <Animated.View key={i} style={[{ transform: [{ scale: scaleAnims[i] }] }]}>
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPressIn={() => handlePressIn(i)}
+                      onPressOut={() => handlePressOut(i)}
+                      onPress={() => console.log("social register", i)}
+                      style={styles.socialCircle}
+                    >
+                      <Image source={{ uri: url }} style={styles.socialCircleIcon} />
+                    </TouchableOpacity>
+                  </Animated.View>
                 ))}
               </View>
-
             </Animated.View>
 
-            <Text style={styles.footNote}>
-              By creating an account you agree to our Terms & Privacy
-            </Text>
+            <Text style={styles.footNote}>By creating an account you agree to our Terms & Privacy</Text>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -293,10 +280,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     left: 8,
-    width: 56,
-    height: 22,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    width: 50,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: "rgba(255,255,255,0.08)",
     transform: [{ rotate: "-12deg" }],
   },
 
@@ -333,7 +320,7 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.02)",
+    backgroundColor: "rgba(255,255,255,0.04)", // brighter
     paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1,
@@ -355,19 +342,39 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 
+  showHideText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 13,
+    paddingHorizontal: 8,
+  },
+
   strengthText: {
     fontSize: 12,
     marginBottom: 8,
   },
 
   primaryButton: {
-    marginTop: 12,
+    zIndex: 1,
     borderRadius: 12,
     paddingVertical: 12,
-    width: "100%",
+    width: "86%",
     alignItems: "center",
     backgroundColor: "#06b6d4",
+    shadowColor: "#06b6d4",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 6,
   },
+
+  buttonWrap: {
+    marginTop: 12,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+ 
 
   primaryButtonText: {
     color: "#02262a",
@@ -392,11 +399,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 16,
-  },
+  dividerRow: { flexDirection: "row", alignItems: "center", marginTop: 16 },
 
   dividerLine: {
     flex: 1,
@@ -410,35 +413,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  /* 🔵 Circular Social Buttons */
-  socialRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 16,
-    gap: 16,
-  },
+  socialRow: { flexDirection: "row", justifyContent: "center", marginTop: 16 },
 
   socialCircle: {
     width: 52,
     height: 52,
     borderRadius: 52,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.03)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    marginHorizontal: 8,
   },
 
-  socialCircleIcon: {
-    width: 42,
-    height: 42,
-    resizeMode: "contain",
-  },
+  socialCircleIcon: { width: 42, height: 42, resizeMode: "contain" },
 
-  footNote: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 12,
-    marginTop: 14,
-    textAlign: "center",
-  },
+  footNote: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 14, textAlign: "center" },
 });
