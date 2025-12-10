@@ -38,7 +38,7 @@ export default function TaskListScreen({ route, navigation }) {
           <TouchableOpacity
             style={styles.taskBox}
             onPress={() =>
-              navigation.navigate("TaskDetailScreen", { taskId: item.id })
+              navigation.navigate("ItemEditorScreen", { taskId: item.id })
             }
           >
             <Text style={styles.taskTitle}>{item.title}</Text>

@@ -4,34 +4,42 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
+import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
+
 import HomeScreen from "../screens/HomeScreen";
-import CategoryScreen from "../screens/CategoryScreen";
-import TaskListScreen from "../screens/TaskListScreen";
+import AddTaskScreen from "../screens/AddTaskScreen";
 import TaskDetailScreen from "../screens/TaskDetailScreen";
 import ItemEditorScreen from "../screens/ItemEditorScreen";
-import AddTaskScreen from "../screens/AddTaskScreen";
 import SettingScreen from "../screens/SettingScreen";
+import CategoryScreen from "../screens/CategoryScreen";
+import TaskListScreen from "../screens/TaskListScreen";
 
 const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) return null;
+
   return (
-    <Stack.Navigator
-      id="root-stack"   // ✅ FIX: REQUIRED IN NAVIGATION V7+
-      screenOptions={{ headerShown: false }}
-    >
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
-      <Stack.Screen name="Home" component={HomeScreen} />
-
-      <Stack.Screen name="CategoryScreen" component={CategoryScreen} />
-      <Stack.Screen name="TaskListScreen" component={TaskListScreen} />
-      <Stack.Screen name="TaskDetailScreen" component={TaskDetailScreen} />
-      <Stack.Screen name="ItemEditorScreen" component={ItemEditorScreen} />
-      <Stack.Screen name="AddTaskScreen" component={AddTaskScreen} />
-
-      {/* MUST MATCH navigate("Settings") */}
-      <Stack.Screen name="Settings" component={SettingScreen} />
+    <Stack.Navigator id="root" screenOptions={{ headerShown: false }}>
+      {user ? (
+        <>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="AddTask" component={AddTaskScreen} />
+          <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
+          <Stack.Screen name="ItemEditor" component={ItemEditorScreen} />
+          <Stack.Screen name="Setting" component={SettingScreen} />
+          <Stack.Screen name="Category" component={CategoryScreen} />
+          <Stack.Screen name="TaskList" component={TaskListScreen} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }
