@@ -53,7 +53,7 @@ export default function DashboardCharts({ items }: { items: Task[] }) {
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 100],
-    outputRange: ["0%", "100%"],
+    outputRange: ["50%", "100%"],
   });
 
   return (
@@ -90,7 +90,7 @@ export default function DashboardCharts({ items }: { items: Task[] }) {
               accessor="population"
               backgroundColor="transparent"
               paddingLeft="10"
-              center={[0, 0]}
+              center={[45, 0]}
               hasLegend={false}
             />
           </View>
@@ -229,8 +229,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   legend: {
-    width: 110,
-    paddingLeft: 12,
+    width: 90,
+    paddingLeft: 1,
     justifyContent: "center",
   },
   legendRow: {
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    marginRight: 8,
+    marginRight: 5,
   },
   legendText: {
     color: "rgba(255,255,255,0.9)",
