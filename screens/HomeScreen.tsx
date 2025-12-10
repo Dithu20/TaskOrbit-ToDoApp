@@ -1,3 +1,4 @@
+
 // src/screens/HomeScreen.tsx
 import React, { useEffect, useState, useRef } from "react";
 import {
@@ -15,6 +16,23 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { subscribeUserTasks, deleteTask, updateTask } from "../services/taskService";
 import { Task } from "../types";
+import DashboardCharts from "../components/Charts";   // ✅ ADDED
+
+/**
+ * HomeScreen — Neon + Dark UI (matches LoginScreen)
+ */
+
+/* ---------- Priority color helper ---------- */
+const getPriorityStripeStyle = (p?: string) => {
+  switch (p) {
+    case "high":
+      return { backgroundColor: "#ff6b6b" };
+    case "medium":
+      return { backgroundColor: "#f59e0b" };
+    default:
+      return { backgroundColor: "#10b981" };
+  }
+};
 
 import DashboardCharts from "../components/Charts";
 import SideMenu from "../components/SideMenu";
