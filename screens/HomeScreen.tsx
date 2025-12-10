@@ -1,70 +1,400 @@
+
 // src/screens/HomeScreen.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  TextInput,
+  ActivityIndicator,
+  Animated,
+  Platform,
+} from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { subscribeUserTasks, deleteTask, updateTask } from "../services/taskService";
 import { Task } from "../types";
+import DashboardCharts from "../components/Charts";   // ✅ ADDED
+
+/**
+ * HomeScreen — Neon + Dark UI (matches LoginScreen)
+ */
+
+/* ---------- Priority color helper ---------- */
+const getPriorityStripeStyle = (p?: string) => {
+  switch (p) {
+    case "high":
+      return { backgroundColor: "#ff6b6b" };
+    case "medium":
+      return { backgroundColor: "#f59e0b" };
+    default:
+      return { backgroundColor: "#10b981" };
+  }
+};
 
 export default function HomeScreen({ navigation }: any) {
   const { user, logout } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "active" | "completed">("all");
+
+  const screenFade = useRef(new Animated.Value(0)).current;
+  const listFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    Animated.timing(screenFade, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  // 🔥 Subscribe to Firestore tasks
+  useEffect(() => {
     if (!user) return;
-    const unsub = subscribeUserTasks(user.uid, (items) => setTasks(items));
+    setLoading(true);
+
+    const unsub = subscribeUserTasks(user.uid, (items: Task[]) => {
+      const sorted = items.sort(
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+      );
+      setTasks(sorted);
+      setLoading(false);
+
+      Animated.timing(listFade, {
+        toValue: 1,
+        duration: 450,
+        useNativeDriver: true,
+      }).start();
+    });
+
     return () => unsub();
   }, [user]);
 
-  const onDelete = async (id?: string) => {
-    if (!id) return;
+  /* ---------- Search & Filter ---------- */
+  const q = searchQuery.toLowerCase().trim();
+
+  const filtered = tasks.filter((t) => {
+    const tabOK = activeTab === "all" ? true : t.status === activeTab;
+    const searchOK =
+      !q ||
+      t.title.toLowerCase().includes(q) ||
+      (t.description || "").toLowerCase().includes(q) ||
+      (t.category || "").toLowerCase().includes(q);
+
+    return tabOK && searchOK;
+  });
+
+  /* ---------- Toggle status ---------- */
+  const handleToggle = async (t: Task) => {
+    if (!t.id) return;
+    const newStatus = t.status === "completed" ? "active" : "completed";
+
+    setTasks((p) => p.map((i) => (i.id === t.id ? { ...i, status: newStatus } : i)));
+
     try {
-      await deleteTask(id);
-    } catch (e: any) {
-      Alert.alert("Delete failed", e.message || "");
+      await updateTask(t.id, { status: newStatus });
+    } catch {
+      setTasks((p) => p.map((i) => (i.id === t.id ? { ...i, status: t.status } : i)));
+      Alert.alert("Error updating task");
     }
   };
 
-  const toggleDone = async (t: Task) => {
-    if (!t.id) return;
-    await updateTask(t.id, { completed: !t.completed });
+  /* ---------- Delete task ---------- */
+  const handleDelete = (id?: string) => {
+    if (!id) return;
+
+    Alert.alert("Delete", "Delete this task permanently?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteTask(id);
+            setTasks((prev) => prev.filter((t) => t.id !== id));
+          } catch {
+            Alert.alert("Delete failed");
+          }
+        },
+      },
+    ]);
   };
 
+  /* ---------- Task Card ---------- */
+  const renderItem = ({ item, index }: { item: Task; index: number }) => {
+    const mount = new Animated.Value(0);
+    Animated.timing(mount, {
+      toValue: 1,
+      duration: 360,
+      delay: index * 28,
+      useNativeDriver: true,
+    }).start();
+
+    return (
+      <Animated.View
+        style={[
+          styles.taskCard,
+          {
+            opacity: mount,
+            transform: [
+              { translateY: mount.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) },
+            ],
+          },
+        ]}
+      >
+        <View style={[styles.neonStripe, getPriorityStripeStyle(item.priority)]} />
+
+        <View style={styles.cardInner}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.taskTitle, item.status === "completed" && styles.completed]}>
+              {item.title}
+            </Text>
+
+            {item.description ? (
+              <Text style={styles.taskDesc} numberOfLines={1}>{item.description}</Text>
+            ) : null}
+
+            <View style={styles.metaRow}>
+              {item.category ? <Text style={styles.category}>#{item.category}</Text> : null}
+
+              <View style={styles.priorityPill}>
+                <Text style={styles.priorityText}>{(item.priority || "low").toUpperCase()}</Text>
+              </View>
+
+              <Text style={styles.dateText}>
+                {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ""}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.actionsColumn}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => handleToggle(item)}>
+              <Text style={styles.icon}>{item.status === "completed" ? "↩️" : "✅"}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => navigation.navigate("TaskDetail", { taskId: item.id })}
+            >
+              <Text style={styles.icon}>✏️</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.iconButton} onPress={() => handleDelete(item.id)}>
+              <Text style={styles.icon}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Animated.View>
+    );
+  };
+
+  /* ---------- UI ---------- */
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Tasks</Text>
-        <TouchableOpacity onPress={() => logout()}><Text style={{ color: "#fff" }}>Logout</Text></TouchableOpacity>
+    <Animated.View style={[styles.screen, { opacity: screenFade }]}>
+      {/* Header */}
+      <View style={styles.headerWrap}>
+        <View>
+          <Text style={styles.brand}>TaskOrbit</Text>
+          <Text style={styles.greeting}>Hello {user?.email?.split("@")[0] || ""}</Text>
+          <Text style={styles.sub}>Your tasks & progress</Text>
+        </View>
+
+        <TouchableOpacity onPress={() => logout()} style={styles.logoutBtn}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={tasks}
-        keyExtractor={(i) => i.id!}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => navigation.navigate("TaskDetail", { taskId: item.id })}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: "#fff", fontSize: 16, textDecorationLine: item.completed ? "line-through" : "none" }}>{item.title}</Text>
-              {item.description ? <Text style={{ color: "#ddd" }}>{item.description}</Text> : null}
-            </View>
-            <TouchableOpacity onPress={() => toggleDone(item)} style={{ marginRight: 12 }}>
-              <Text style={{ color: "#fff" }}>{item.completed ? "Undo" : "Done"}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => onDelete(item.id)}><Text style={{ color: "#ff6b6b" }}>Delete</Text></TouchableOpacity>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={<Text style={{ color: "#aaa", marginTop: 20 }}>No tasks yet</Text>}
-      />
+      {/* Search + Tabs */}
+      <View style={styles.controls}>
+        <View style={styles.inputWrap}>
+          <Text style={styles.inputIcon}>🔎</Text>
+          <TextInput
+            placeholder="Search tasks..."
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            style={styles.input}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
 
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("AddTask")}>
-        <Text style={{ color: "#fff", fontWeight: "700" }}>＋</Text>
+        <View style={styles.tabRow}>
+          {(["all", "active", "completed"] as const).map((t) => {
+            const active = activeTab === t;
+            return (
+              <TouchableOpacity
+                key={t}
+                onPress={() => setActiveTab(t)}
+                style={[styles.tab, active && styles.tabActive]}
+              >
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>{t}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* 📊 Dashboard Charts */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
+        <DashboardCharts items={tasks} />
+      </View>
+
+      {/* List */}
+      <Animated.View style={{ flex: 1, opacity: listFade }}>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#06b6d4" />
+          </View>
+        ) : filtered.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.empty}>No tasks found</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={(i) => i.id!}
+            renderItem={renderItem}
+            contentContainerStyle={{ padding: 18, paddingBottom: 140 }}
+            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          />
+        )}
+      </Animated.View>
+
+      {/* FAB */}
+      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("AddTaskScreen")}>
+        <View style={styles.fabInner}>
+          <Text style={styles.fabPlus}>＋</Text>
+        </View>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 }
 
+/* ---------- STYLES ---------- */
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#0f1724" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  title: { color: "#fff", fontSize: 22 },
-  item: { flexDirection: "row", padding: 12, borderRadius: 8, backgroundColor: "#111827", marginBottom: 8, alignItems: "center" },
-  fab: { position: "absolute", right: 20, bottom: 30, backgroundColor: "#5b8cff", width: 56, height: 56, borderRadius: 28, justifyContent: "center", alignItems: "center" }
+  screen: { flex: 1, backgroundColor: "#06121a" },
+
+  headerWrap: {
+    paddingTop: Platform.OS === "ios" ? 56 : 28,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  brand: { color: "#fff", fontSize: 20, fontWeight: "800" },
+  greeting: { color: "rgba(255,255,255,0.9)", fontSize: 16, marginTop: 6, fontWeight: "700" },
+  sub: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 4 },
+
+  logoutBtn: {
+    backgroundColor: "#06b6d4",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  logoutText: { color: "#02262a", fontWeight: "800" },
+
+  controls: { paddingHorizontal: 20, paddingBottom: 12 },
+
+  inputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.03)",
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    height: 48,
+  },
+  inputIcon: { color: "rgba(255,255,255,0.85)", marginRight: 8, fontSize: 16 },
+  input: { flex: 1, color: "#fff", fontSize: 15 },
+
+  tabRow: { flexDirection: "row", marginTop: 12 },
+  tab: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    marginRight: 8,
+  },
+  tabActive: {
+    backgroundColor: "#06b6d4",
+    shadowColor: "#06b6d4",
+    shadowOpacity: 0.26,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  tabText: { color: "rgba(255,255,255,0.7)", fontWeight: "700", textTransform: "capitalize" },
+  tabTextActive: { color: "#02262a" },
+
+  taskCard: {
+    flexDirection: "row",
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.02)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.03)",
+  },
+  neonStripe: { width: 6 },
+
+  cardInner: { flex: 1, padding: 12, flexDirection: "row" },
+
+  taskTitle: { color: "#fff", fontSize: 15, fontWeight: "800" },
+  completed: { color: "rgba(255,255,255,0.4)", textDecorationLine: "line-through" },
+  taskDesc: { color: "rgba(255,255,255,0.6)", marginTop: 6 },
+
+  metaRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
+  category: {
+    color: "rgba(255,255,255,0.7)",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 8,
+    fontWeight: "700",
+  },
+
+  priorityPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 8,
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  priorityText: { color: "#fff", fontWeight: "700", fontSize: 11 },
+
+  dateText: { marginLeft: "auto", color: "rgba(255,255,255,0.5)" },
+
+  actionsColumn: { marginLeft: 10, justifyContent: "space-between", alignItems: "center" },
+  iconButton: { padding: 6 },
+  icon: { fontSize: 18 },
+
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  empty: { color: "rgba(255,255,255,0.6)" },
+
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    shadowColor: "#06b6d4",
+    shadowOpacity: 0.28,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  fabInner: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(6,182,212,0.12)",
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fabPlus: { fontSize: 34, fontWeight: "900", color: "#06b6d4" },
 });
