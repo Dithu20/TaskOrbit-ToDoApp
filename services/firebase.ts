@@ -19,3 +19,4 @@ export const auth = getAuth(app);
 
 // Export Firestore
 export const db = getFirestore(app);
+export default app;

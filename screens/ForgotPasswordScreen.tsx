@@ -26,9 +26,21 @@ export default function ForgotPasswordScreen({ navigation }: any) {
         "Success",
         "A password reset link has been sent to your email."
       );
-      navigation.goBack();
+      console.log("Password reset email sent");
+
+      // 🔥 FIX: SAFE BACK NAVIGATION
+      if (
+        navigation &&
+        typeof navigation.canGoBack === "function" &&
+        navigation.canGoBack()
+      ) {
+        navigation.goBack();
+      } else {
+        navigation.navigate("Login");
+      }
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to send reset link");
+      console.error("Error sending password reset email:", error);
     }
   };
 
@@ -46,7 +58,20 @@ export default function ForgotPasswordScreen({ navigation }: any) {
 
       <Button title="Send Reset Link" onPress={resetPassword} />
 
-      <TouchableOpacity onPress={() => navigation.goBack()}>
+      {/* 🔥 FIX: BACK BUTTON ALSO SAFE */}
+      <TouchableOpacity
+        onPress={() => {
+          if (
+            navigation &&
+            typeof navigation.canGoBack === "function" &&
+            navigation.canGoBack()
+          ) {
+            navigation.goBack();
+          } else {
+            navigation.navigate("Login");
+          }
+        }}
+      >
         <Text style={styles.backText}>Back to Login</Text>
       </TouchableOpacity>
     </View>
