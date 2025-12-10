@@ -1,3 +1,4 @@
+
 // src/screens/HomeScreen.tsx
 import React, { useEffect, useState, useRef } from "react";
 import {
@@ -33,17 +34,39 @@ const getPriorityStripeStyle = (p?: string) => {
   }
 };
 
+import DashboardCharts from "../components/Charts";
+import SideMenu from "../components/SideMenu";
+
+/* Neon Priority Stripe */
+const getPriorityStripeStyle = (p?: string) => {
+  switch (p) {
+    case "high": return { backgroundColor: "#ff6b6b" };
+    case "medium": return { backgroundColor: "#f59e0b" };
+    default: return { backgroundColor: "#10b981" };
+  }
+};
+
 export default function HomeScreen({ navigation }: any) {
   const { user, logout } = useAuth();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "active" | "completed">("all");
 
+  // Menu drawer state
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Theme state
+  const [mode, setMode] = useState<"light" | "dark">("dark");
+  const toggleTheme = () => setMode((prev) => (prev === "light" ? "dark" : "light"));
+
+  // Animations
   const screenFade = useRef(new Animated.Value(0)).current;
   const listFade = useRef(new Animated.Value(0)).current;
 
+  /* Fade screen on mount */
   useEffect(() => {
     Animated.timing(screenFade, {
       toValue: 1,
@@ -52,17 +75,18 @@ export default function HomeScreen({ navigation }: any) {
     }).start();
   }, []);
 
-  // 🔥 Subscribe to Firestore tasks
+  /* Firestore task subscription */
   useEffect(() => {
     if (!user) return;
-    setLoading(true);
 
+    setLoading(true);
     const unsub = subscribeUserTasks(user.uid, (items: Task[]) => {
       const sorted = items.sort(
         (a, b) =>
           new Date(b.createdAt || 0).getTime() -
           new Date(a.createdAt || 0).getTime()
       );
+
       setTasks(sorted);
       setLoading(false);
 
@@ -76,9 +100,8 @@ export default function HomeScreen({ navigation }: any) {
     return () => unsub();
   }, [user]);
 
-  /* ---------- Search & Filter ---------- */
+  /* Search & filter logic */
   const q = searchQuery.toLowerCase().trim();
-
   const filtered = tasks.filter((t) => {
     const tabOK = activeTab === "all" ? true : t.status === activeTab;
     const searchOK =
@@ -90,7 +113,7 @@ export default function HomeScreen({ navigation }: any) {
     return tabOK && searchOK;
   });
 
-  /* ---------- Toggle status ---------- */
+  /* Toggle status */
   const handleToggle = async (t: Task) => {
     if (!t.id) return;
     const newStatus = t.status === "completed" ? "active" : "completed";
@@ -105,7 +128,7 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
-  /* ---------- Delete task ---------- */
+  /* Delete task */
   const handleDelete = (id?: string) => {
     if (!id) return;
 
@@ -117,7 +140,7 @@ export default function HomeScreen({ navigation }: any) {
         onPress: async () => {
           try {
             await deleteTask(id);
-            setTasks((prev) => prev.filter((t) => t.id !== id));
+            setTasks((p) => p.filter((t) => t.id !== id));
           } catch {
             Alert.alert("Delete failed");
           }
@@ -126,9 +149,10 @@ export default function HomeScreen({ navigation }: any) {
     ]);
   };
 
-  /* ---------- Task Card ---------- */
+  /* Render each task */
   const renderItem = ({ item, index }: { item: Task; index: number }) => {
     const mount = new Animated.Value(0);
+
     Animated.timing(mount, {
       toValue: 1,
       duration: 360,
@@ -173,19 +197,17 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           </View>
 
+          {/* Icons */}
           <View style={styles.actionsColumn}>
-            <TouchableOpacity style={styles.iconButton} onPress={() => handleToggle(item)}>
+            <TouchableOpacity onPress={() => handleToggle(item)}>
               <Text style={styles.icon}>{item.status === "completed" ? "↩️" : "✅"}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => navigation.navigate("TaskDetail", { taskId: item.id })}
-            >
+            <TouchableOpacity onPress={() => navigation.navigate("TaskDetail", { taskId: item.id })}>
               <Text style={styles.icon}>✏️</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.iconButton} onPress={() => handleDelete(item.id)}>
+            <TouchableOpacity onPress={() => handleDelete(item.id)}>
               <Text style={styles.icon}>🗑️</Text>
             </TouchableOpacity>
           </View>
@@ -194,20 +216,30 @@ export default function HomeScreen({ navigation }: any) {
     );
   };
 
-  /* ---------- UI ---------- */
   return (
     <Animated.View style={[styles.screen, { opacity: screenFade }]}>
       {/* Header */}
       <View style={styles.headerWrap}>
         <View>
           <Text style={styles.brand}>TaskOrbit</Text>
-          <Text style={styles.greeting}>Hello {user?.email?.split("@")[0] || ""}</Text>
+          <Text style={styles.greeting}>Hello {user?.email?.split("@")[0]}</Text>
           <Text style={styles.sub}>Your tasks & progress</Text>
         </View>
 
-        <TouchableOpacity onPress={() => logout()} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {/* Menu Button */}
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setMenuOpen(true)}
+          >
+            <Text style={styles.menuIcon}>☰</Text>
+          </TouchableOpacity>
+
+          {/* Logout */}
+          <TouchableOpacity onPress={() => logout()} style={styles.logoutBtn}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search + Tabs */}
@@ -223,28 +255,26 @@ export default function HomeScreen({ navigation }: any) {
           />
         </View>
 
+        {/* Tabs */}
         <View style={styles.tabRow}>
-          {(["all", "active", "completed"] as const).map((t) => {
-            const active = activeTab === t;
-            return (
-              <TouchableOpacity
-                key={t}
-                onPress={() => setActiveTab(t)}
-                style={[styles.tab, active && styles.tabActive]}
-              >
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>{t}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {(["all", "active", "completed"] as const).map((t) => (
+            <TouchableOpacity
+              key={t}
+              onPress={() => setActiveTab(t)}
+              style={[styles.tab, activeTab === t && styles.tabActive]}
+            >
+              <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>{t}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
-      {/* 📊 Dashboard Charts */}
+      {/* Charts */}
       <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
         <DashboardCharts items={tasks} />
       </View>
 
-      {/* List */}
+      {/* Task List */}
       <Animated.View style={{ flex: 1, opacity: listFade }}>
         {loading ? (
           <View style={styles.center}>
@@ -266,16 +296,28 @@ export default function HomeScreen({ navigation }: any) {
       </Animated.View>
 
       {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("AddTask")}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("AddTask")}
+      >
         <View style={styles.fabInner}>
           <Text style={styles.fabPlus}>＋</Text>
         </View>
       </TouchableOpacity>
+
+      {/* Side Menu */}
+      <SideMenu 
+      isOpen={menuOpen}
+      onClose={() => setMenuOpen(false)}
+      user={user}
+      navigate={(screenName: string) => navigation.navigate(screenName)}
+    />
+
     </Animated.View>
   );
 }
 
-/* ---------- STYLES ---------- */
+/* ------------ STYLES ------------ */
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#06121a" },
 
@@ -288,8 +330,20 @@ const styles = StyleSheet.create({
   },
 
   brand: { color: "#fff", fontSize: 20, fontWeight: "800" },
-  greeting: { color: "rgba(255,255,255,0.9)", fontSize: 16, marginTop: 6, fontWeight: "700" },
-  sub: { color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 4 },
+  greeting: { color: "#fff", fontSize: 16, marginTop: 6, fontWeight: "700" },
+  sub: { color: "rgba(255,255,255,0.6)", marginTop: 4, fontSize: 12 },
+
+  /* Menu Button */
+  menuButton: {
+    marginRight: 12,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  menuIcon: { color: "#06b6d4", fontSize: 20, fontWeight: "900" },
 
   logoutBtn: {
     backgroundColor: "#06b6d4",
@@ -309,7 +363,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     height: 48,
   },
-  inputIcon: { color: "rgba(255,255,255,0.85)", marginRight: 8, fontSize: 16 },
+  inputIcon: { color: "#fff", marginRight: 8, fontSize: 16 },
   input: { flex: 1, color: "#fff", fontSize: 15 },
 
   tabRow: { flexDirection: "row", marginTop: 12 },
@@ -322,14 +376,11 @@ const styles = StyleSheet.create({
   },
   tabActive: {
     backgroundColor: "#06b6d4",
-    shadowColor: "#06b6d4",
-    shadowOpacity: 0.26,
-    shadowRadius: 12,
-    elevation: 6,
   },
   tabText: { color: "rgba(255,255,255,0.7)", fontWeight: "700", textTransform: "capitalize" },
   tabTextActive: { color: "#02262a" },
 
+  /* Task Card */
   taskCard: {
     flexDirection: "row",
     borderRadius: 14,
@@ -338,6 +389,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.03)",
   },
+
   neonStripe: { width: 6 },
 
   cardInner: { flex: 1, padding: 12, flexDirection: "row" },
@@ -369,12 +421,12 @@ const styles = StyleSheet.create({
   dateText: { marginLeft: "auto", color: "rgba(255,255,255,0.5)" },
 
   actionsColumn: { marginLeft: 10, justifyContent: "space-between", alignItems: "center" },
-  iconButton: { padding: 6 },
-  icon: { fontSize: 18 },
+  icon: { fontSize: 20 },
 
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   empty: { color: "rgba(255,255,255,0.6)" },
 
+  /* FAB */
   fab: {
     position: "absolute",
     right: 20,
@@ -382,10 +434,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    shadowColor: "#06b6d4",
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
-    elevation: 10,
   },
   fabInner: {
     width: "100%",
