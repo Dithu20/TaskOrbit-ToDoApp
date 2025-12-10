@@ -1,6 +1,3 @@
-
-
-
 export interface Task {
   id?: string;
   ownerId: string;

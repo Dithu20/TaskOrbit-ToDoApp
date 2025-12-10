@@ -14,10 +14,7 @@ export default function AddTaskScreen({ navigation }: any) {
     if (!title.trim()) { Alert.alert("Title required"); return; }
     try {
       if (!user) throw new Error("Not logged in");
-      await addTask({
-        title: title.trim(), description: desc.trim(), ownerId: user.uid,
-        status: "active"
-      });
+      await addTask({ title: title.trim(), description: desc.trim(), ownerId: user.uid, status: "active" });
       navigation.goBack();
     } catch (e: any) {
       Alert.alert("Error", e.message || "Try again");
