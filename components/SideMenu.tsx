@@ -124,7 +124,7 @@ export default function SideMenu({
           <View style={styles.divider} />
 
           {/* THEME TOGGLE */}
-          <TouchableOpacity style={styles.themeRow} onPress={toggleTheme}>
+          {/* <TouchableOpacity style={styles.themeRow} onPress={toggleTheme}>
             <Text style={{ fontSize: 22 }}>{mode === "dark" ? "🌙" : "🌞"}</Text>
             <Text style={[styles.themeLabel, { color: text }]}>Dark Mode</Text>
 
@@ -134,7 +134,20 @@ export default function SideMenu({
               />
             </View>
           </TouchableOpacity>
-        </View>
+        </View> */}
+        {/* ------------------------------------------- */}
+        <TouchableOpacity style={styles.themeRow} onPress={toggleTheme}>
+  <Text style={{ fontSize: 22 }}>{mode === "dark" ? "🌙" : "🌞"}</Text>
+  <Text style={[styles.themeLabel, { color: text }]}>Dark Mode</Text>
+
+  <View style={[styles.switchOuter, mode === "dark" && styles.switchOuterActive]}>
+    <Animated.View
+      style={[styles.switchKnob, mode === "dark" && styles.switchKnobActive]}
+    />
+  </View>
+</TouchableOpacity>
+</View>
+        {/* ------------------------------------------ */}
 
         {/* FOOTER */}
         <View style={styles.footer}>

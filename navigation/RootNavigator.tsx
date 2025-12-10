@@ -7,6 +7,9 @@ import HomeScreen from "../screens/HomeScreen";
 import AddTaskScreen from "../screens/AddTaskScreen";
 import TaskDetailScreen from "../screens/TaskDetailScreen";
 import ItemEditorScreen from "../screens/ItemEditorScreen";
+import AddTaskScreen from "../screens/AddTaskScreen";
+import SettingScreen from "../screens/SettingScreen";
+// import ProfileScreen from "../screens/ProfileScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -29,8 +32,11 @@ export default function RootNavigator() {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="AddTask" component={AddTaskScreen} />
-      <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
+      {/* <Stack.Screen name="profile" component={ProfileScreen} /> */}
+
+      <Stack.Screen name="CategoryScreen" component={CategoryScreen} />
+      <Stack.Screen name="TaskListScreen" component={TaskListScreen} />
+      <Stack.Screen name="TaskDetailScreen" component={TaskDetailScreen} />
       <Stack.Screen name="ItemEditorScreen" component={ItemEditorScreen} />
     </Stack.Navigator>
   );
