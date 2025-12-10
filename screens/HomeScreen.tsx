@@ -1,4 +1,3 @@
-
 // src/screens/HomeScreen.tsx
 import React, { useEffect, useState, useRef } from "react";
 import {
@@ -16,7 +15,8 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { subscribeUserTasks, deleteTask, updateTask } from "../services/taskService";
 import { Task } from "../types";
-import DashboardCharts from "../components/Charts";   // ✅ ADDED
+import DashboardCharts from "../components/Charts"; // ✅ CORRECT IMPORT
+import SideMenu from "../components/SideMenu"; // ✅ CORRECT IMPORT
 
 /**
  * HomeScreen — Neon + Dark UI (matches LoginScreen)
@@ -31,18 +31,6 @@ const getPriorityStripeStyle = (p?: string) => {
       return { backgroundColor: "#f59e0b" };
     default:
       return { backgroundColor: "#10b981" };
-  }
-};
-
-import DashboardCharts from "../components/Charts";
-import SideMenu from "../components/SideMenu";
-
-/* Neon Priority Stripe */
-const getPriorityStripeStyle = (p?: string) => {
-  switch (p) {
-    case "high": return { backgroundColor: "#ff6b6b" };
-    case "medium": return { backgroundColor: "#f59e0b" };
-    default: return { backgroundColor: "#10b981" };
   }
 };
 
@@ -295,10 +283,12 @@ export default function HomeScreen({ navigation }: any) {
         )}
       </Animated.View>
 
+
+{/* Add task */}
       {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate("AddTask")}
+        onPress={() => navigation.navigate("AddTaskScreen")}
       >
         <View style={styles.fabInner}>
           <Text style={styles.fabPlus}>＋</Text>
